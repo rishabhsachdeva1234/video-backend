@@ -142,4 +142,4 @@ const logoutUser = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 });
 
-export { registerUser, loginUser };
+export { registerUser, loginUser, logoutUser };
