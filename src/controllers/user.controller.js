@@ -40,7 +40,9 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  const coverImageLocalPath = req.files?.coverImage
+    ? req.files?.coverImage[0]?.path
+    : null;
 
   if (!avatarLocalPath) {
     throw new ApiError(400, 'Avatar file is required');
@@ -115,11 +117,9 @@ const loginUser = asyncHandler(async (req, res) => {
     user._id
   );
 
-  const {
-    password: userPassword,
-    refreshToken: userRefreshToken,
-    ...loggedInUser
-  } = user;
+  const loggedInUser = await User.findById(user._id).select(
+    '-password -refreshToken'
+  );
 
   const cookieOptions = {
     httpOnly: true,
@@ -140,6 +140,27 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+  await User.findByIdAndUpdate(
+    userId,
+    {
+      $unset: {
+        refreshToken: 1, // this removes the field from document
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie('refreshToken', cookieOptions)
+    .json(new ApiResponse(200, {}, 'User logged out successfully'));
 });
 
 export { registerUser, loginUser, logoutUser };
